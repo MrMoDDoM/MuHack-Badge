@@ -1,0 +1,93 @@
+EESchema-LIBRARY Version 2.4
+#encoding utf-8
+#
+# Vishay SI1967DH-T1-GE3
+#
+DEF SI1967DH-T1-GE3 Q 0 40 Y Y 2 L N
+F0 "Q" 0 200 50 H V L CNN 
+F1 "SI1967DH-T1-GE3" 0 300 50 H V L CNN 
+F2 "Vishay-S-03946-07_2001-B-*" 0 400 50 H I L CNN 
+F3 "http://www.vishay.com/docs/68784/SI1967DH.pdf" 0 500 50 H I L CNN 
+F4 "Trans" 0 600 50 H I L CNN "category"
+F5 "-1A" 0 700 50 H I L CNN "continuous drain current"
+F6 "Discrete Semiconductors" 0 800 50 H I L CNN "device class L1"
+F7 "Transistors" 0 900 50 H I L CNN "device class L2"
+F8 "MOSFETs" 0 1000 50 H I L CNN "device class L3"
+F9 "MOSFET 2P-CH 20V 1.3A SC70-6" 0 1100 50 H I L CNN "digikey description"
+F10 "SI1967DH-T1-GE3CT-ND" 0 1200 50 H I L CNN "digikey part number"
+F11 "-20V" 0 1300 50 H I L CNN "drain to source breakdown voltage"
+F12 "0.39Ω" 0 1400 50 H I L CNN "drain to source resistance"
+F13 "-20V" 0 1500 50 H I L CNN "drain to source voltage"
+F14 "8V" 0 1600 50 H I L CNN "gate to source voltage"
+F15 "1.1mm" 0 1700 50 H I L CNN "height"
+F16 "110pF @ -10V" 0 1800 50 H I L CNN "input capacitace at vds"
+F17 "yes" 0 1900 50 H I L CNN "lead free"
+F18 "f756bad577c3858f" 0 2000 50 H I L CNN "library id"
+F19 "Vishay" 0 2100 50 H I L CNN "manufacturer"
+F20 "+150°C" 0 2200 50 H I L CNN "max junction temp"
+F21 "MOSFET 20V 1.3A DUAL P-CH MOSFET" 0 2300 50 H I L CNN "mouser description"
+F22 "781-SI1967DH-T1-GE3" 0 2400 50 H I L CNN "mouser part number"
+F23 "2" 0 2500 50 H I L CNN "number of P channels"
+F24 "2" 0 2600 50 H I L CNN "number of channels"
+F25 "SC-70-6" 0 2700 50 H I L CNN "package"
+F26 "0.74W" 0 2800 50 H I L CNN "power dissipation"
+F27 "yes" 0 2900 50 H I L CNN "rohs"
+F28 "MOSFET" 0 3000 50 H I L CNN "technology"
+F29 "+150°C" 0 3100 50 H I L CNN "temperature range high"
+F30 "-55°C" 0 3200 50 H I L CNN "temperature range low"
+F31 "-1V" 0 3300 50 H I L CNN "threshold vgs"
+F32 "12ns" 0 3400 50 H I L CNN "turn off delay time"
+F33 "2ns" 0 3500 50 H I L CNN "turn on delay time"
+DRAW
+X G1 2 100 0 140 R 40 0 1 1 P 
+X D1 6 400 -300 100 U 40 0 1 1 P 
+X S1 1 400 100 200 D 40 0 1 1 P 
+P 2 1 1 0 240 -200 240 0 N
+P 2 1 1 0 270 -40 270 0 N
+P 2 1 1 0 270 -180 400 -180 N
+P 2 1 1 0 270 -20 400 -20 N
+P 2 1 1 0 390 -100 280 -100 N
+P 2 1 1 0 400 -100 350 -70 N
+P 2 1 1 0 400 -100 350 -130 N
+P 2 1 1 0 350 -70 350 -130 N
+P 2 1 1 0 360 -90 360 -120 N
+P 2 1 1 0 270 -160 270 -200 N
+P 2 1 1 0 270 -80 270 -120 N
+P 2 1 1 0 400 -180 470 -180 N
+P 2 1 1 0 470 -180 470 -20 N
+P 2 1 1 0 470 -20 400 -20 N
+C 400 -20 10 1 1 0 N
+C 400 -180 10 1 1 0 N
+P 2 1 1 0 470 -80 450 -120 N
+P 2 1 1 0 450 -120 490 -120 N
+P 2 1 1 0 490 -120 470 -80 N
+P 2 1 1 0 470 -80 490 -80 N
+P 2 1 1 0 470 -80 450 -80 N
+X G2 5 100 0 140 R 40 0 2 1 P 
+X D2 3 400 -300 120 U 40 0 2 1 P 
+X S2 4 400 100 200 D 40 0 2 1 P 
+P 2 2 1 0 240 -200 240 0 N
+P 2 2 1 0 270 -40 270 0 N
+P 2 2 1 0 270 -180 400 -180 N
+P 2 2 1 0 270 -20 400 -20 N
+P 2 2 1 0 390 -100 270 -100 N
+P 2 2 1 0 400 -100 350 -70 N
+P 2 2 1 0 400 -100 350 -130 N
+P 2 2 1 0 350 -70 350 -130 N
+P 2 2 1 0 360 -90 360 -120 N
+P 2 2 1 0 270 -160 270 -200 N
+P 2 2 1 0 270 -80 270 -120 N
+P 2 2 1 0 400 -180 470 -180 N
+P 2 2 1 0 470 -180 470 -20 N
+P 2 2 1 0 470 -20 400 -20 N
+C 400 -20 10 2 1 0 N
+C 400 -180 10 2 1 0 N
+P 2 2 1 0 470 -80 450 -120 N
+P 2 2 1 0 450 -120 490 -120 N
+P 2 2 1 0 490 -120 470 -80 N
+P 2 2 1 0 470 -80 490 -80 N
+P 2 2 1 0 470 -80 450 -80 N
+ENDDRAW
+ENDDEF
+#
+# End Library

@@ -1,0 +1,7 @@
+EESchema-DOCLIB  Version 2.0
+#
+$CMP BHI160B
+D BHI160B
+F https://ae-bst.resource.bosch.com/media/_tech/media/datasheets/BST-BHI160B-DS000.pdf
+$ENDCMP
+# end doc library
