@@ -105,7 +105,7 @@
         "max_error": 0.005,
         "min_clearance": 0.01,
         "min_copper_edge_clearance": 0.0,
-        "min_hole_clearance": 0.25,
+        "min_hole_clearance": 0.15,
         "min_hole_to_hole": 0.25,
         "min_microvia_diameter": 0.19999999999999998,
         "min_microvia_drill": 0.09999999999999999,
@@ -347,7 +347,7 @@
     "pinned_symbol_libs": []
   },
   "meta": {
-    "filename": "Badge_v1.kicad_pro",
+    "filename": "Badge.kicad_pro",
     "version": 1
   },
   "net_settings": {
@@ -380,6 +380,7 @@
         "microvia_drill": 0.1,
         "name": "BGA",
         "nets": [
+          "+3V3",
           "/Gyros/INT",
           "/Gyros/INT_S1",
           "GND",
