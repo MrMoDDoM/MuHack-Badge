@@ -3,4 +3,5 @@
   (lib (name "BMM150")(type "Legacy")(uri "${KIPRJMOD}/IC_Bosch Sensortec_BMM150/eec.lib")(options "")(descr ""))
   (lib (name "SI1967DH")(type "Legacy")(uri "${KIPRJMOD}/Trans_Vishay_SI1967DH-T1-GE3/eec.lib")(options "")(descr ""))
   (lib (name "ESP32")(type "KiCad")(uri "${KIPRJMOD}/ESP32/libraries/Espressif.kicad_sym")(options "")(descr ""))
+  (lib (name "SAOv2")(type "Legacy")(uri "${KIPRJMOD}/SAOv2/Simple_Addon_v2.lib")(options "")(descr ""))
 )
