@@ -1,0 +1,3 @@
+[submodule "BHY"]
+	path = Software/BOSS/BHY
+	url = https://github.com/MrMoDDoM/BHY-Micropython-Driver.git
