@@ -1,5 +1,8 @@
 # MuHack-Badge
-Official repository for MuHack Badge
+Official repository for MuHack Badge.
+
+The board features an RP2040 as main microcontroller running micropython.
+Its job is to setup and stream data from the Bosh Sensor Hub BHI106B, as well as controlling the LEDs.
 
 ```Hardware/``` folder contains the KiCad project
 
@@ -18,3 +21,7 @@ TODOs:
  - [ ] Add led polarity
  - [ ] Remove power inductor (or change to an available one)
  - [ ] Maybe add a way to switch LEDs data line to the ESP32 instead of the RP2040
+ - [ ] Docs and code comments
+ 
+ Special Thanks to:
+ @gcammisa and Paolino
