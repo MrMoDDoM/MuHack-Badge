@@ -1,27 +1,3 @@
-'''
-MIT License
-
-Copyright (c) 2022 MrMoDDoM
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-'''
-
 import sys
 from time import sleep_ms
 from machine import I2C, Pin, PWM, UART
@@ -30,14 +6,15 @@ import binascii
 import neopixel
 import _thread
 import gc
-import micropython
+#import micropython
 import random
 import select
-
-from BHI160B.bhy import BHY
+from BHY.bhy import BHY
 from CLED.cled import CLED
 
 BOSS_Version = "1.0_beta"
+
+applications = []
 
 ESP_TX_PIN = 0
 ESP_RX_PIN = 1
@@ -57,11 +34,13 @@ SCL_PIN = 23
 SDA_PIN = 22
 BHY_I2C_ADDR = 0x28 # 40 in decimal
 
+CLED_THREAD = 0
+
 button_A = machine.Pin(BUTTON_A_PIN, Pin.IN)
 button_B = machine.Pin(BUTTON_B_PIN, Pin.IN)
 
 bhy = BHY(sda=SDA_PIN, scl=SCL_PIN, address=BHY_I2C_ADDR, stand_alone=False, debug=False)
-cled = CLED(LED_STRIPE_PIN, LED_STRIPE_LEN)
+cled = CLED(LED_STRIPE_PIN, LED_STRIPE_LEN, LED_LETTER_PIN, LED_LETTER_LEN, debug=False)
 
 song = '0 E3 1 0;2 E4 1 0;4 E3 1 0;6 E4 1 0;8 E3 1 0;10 E4 1 0;12 E3 1 0;14 E4 1 0;16 A3 1 0;18 A4 1 0;20 A3 1 0;22 A4 1 0;24 A3 1 0;26 A4 1 0;28 A3 1 0;30 A4 1 0;32 G#3 1 0;34 G#4 1 0;36 G#3 1 0;38 G#4 1 0;40 E3 1 0;42 E4 1 0;44 E3 1 0;46 E4 1 0;48 A3 1 0;50 A4 1 0;52 A3 1 0;54 A4 1 0;56 A3 1 0;58 B3 1 0;60 C4 1 0;62 D4 1 0;64 D3 1 0;66 D4 1 0;68 D3 1 0;70 D4 1 0;72 D3 1 0;74 D4 1 0;76 D3 1 0;78 D4 1 0;80 C3 1 0;82 C4 1 0;84 C3 1 0;86 C4 1 0;88 C3 1 0;90 C4 1 0;92 C3 1 0;94 C4 1 0;96 G2 1 0;98 G3 1 0;100 G2 1 0;102 G3 1 0;104 E3 1 0;106 E4 1 0;108 E3 1 0;110 E4 1 0;114 A4 1 0;112 A3 1 0;116 A3 1 0;118 A4 1 0;120 A3 1 0;122 A4 1 0;124 A3 1 0;0 E6 1 1;4 B5 1 1;6 C6 1 1;8 D6 1 1;10 E6 1 1;11 D6 1 1;12 C6 1 1;14 B5 1 1;0 E5 1 6;4 B4 1 6;6 C5 1 6;8 D5 1 6;10 E5 1 6;11 D5 1 6;12 C5 1 6;14 B4 1 6;16 A5 1 1;20 A5 1 1;22 C6 1 1;24 E6 1 1;28 D6 1 1;30 C6 1 1;32 B5 1 1;36 B5 1 1;36 B5 1 1;37 B5 1 1;38 C6 1 1;40 D6 1 1;44 E6 1 1;48 C6 1 1;52 A5 1 1;56 A5 1 1;20 A4 1 6;16 A4 1 6;22 C5 1 6;24 E5 1 6;28 D5 1 6;30 C5 1 6;32 B4 1 6;36 B4 1 6;37 B4 1 6;38 C5 1 6;40 D5 1 6;44 E5 1 6;48 C5 1 6;52 A4 1 6;56 A4 1 6;64 D5 1 6;64 D6 1 1;68 D6 1 1;70 F6 1 1;72 A6 1 1;76 G6 1 1;78 F6 1 1;80 E6 1 1;84 E6 1 1;86 C6 1 1;88 E6 1 1;92 D6 1 1;94 C6 1 1;96 B5 1 1;100 B5 1 1;101 B5 1 1;102 C6 1 1;104 D6 1 1;108 E6 1 1;112 C6 1 1;116 A5 1 1;120 A5 1 1;72 A5 1 6;80 E5 1 6;68 D5 1 7;70 F5 1 7;76 G5 1 7;84 E5 1 7;78 F5 1 7;86 C5 1 7;88 E5 1 6;96 B4 1 6;104 D5 1 6;112 C5 1 6;120 A4 1 6;92 D5 1 7;94 C5 1 7;100 B4 1 7;101 B4 1 7;102 C5 1 7;108 E5 1 7;116 A4 1 7'
 sensor_config = []
@@ -82,9 +61,10 @@ remapping_matrix = [0,1,0,1,0,0,0,0,-1] # P5 ?
 #remapping_matrix = [1,0,0,0,-1,0,0,0,-1] # P7 ?
 
 def testHardware():
+    led_stripe = neopixel.NeoPixel(machine.Pin(LED_STRIPE_PIN), LED_STRIPE_LEN)
+    led_letter = neopixel.NeoPixel(machine.Pin(LED_LETTER_PIN), LED_LETTER_LEN)
     try:
         print("Testing LED Stripe")
-        led_stripe = neopixel.NeoPixel(machine.Pin(LED_STRIPE_PIN), LED_STRIPE_LEN)
         for j in range(255):
             for i in range(LED_STRIPE_LEN):
                 rc_index = (i * 256 // LED_STRIPE_LEN) + j
@@ -93,7 +73,6 @@ def testHardware():
             sleep_ms(10)
 
         print("Testing LED on Letters")
-        led_letter = neopixel.NeoPixel(machine.Pin(LED_LETTER_PIN), LED_LETTER_LEN)
         for j in range(255):
             for i in range(LED_LETTER_LEN):
                 rc_index = (i * 256 // LED_LETTER_LEN) + j
@@ -118,7 +97,7 @@ def testHardware():
 
             led_letter.write()
 
-        mySong = music(song, pins=[Pin(BUZZER_PIN)])
+        mySong = music(song, pins=[Pin(BUZZER_PIN)], looping=False)
 
         while mySong.tick():
             sleep_ms(40)
@@ -284,13 +263,13 @@ def discoverSelfTest():
     #     "\tData:", binascii.hexlify(buffer[:dim])
     #     )
 
-    events = bhy.parse_fifo(buffer, [BHY.EV_META_EVENTS, BHY.EV_WAKEUP_META_EVENTS])
-    for e in events:
-        print(bhy.parseMetaEvent(e[2]))
+    # events = bhy.parse_fifo(buffer, [BHY.EV_META_EVENTS, BHY.EV_WAKEUP_META_EVENTS])
+    # for e in events:
+    #     print(bhy.parseMetaEvent(e[2]))
 
 def streamCalibration(vs_type):
     calibrated = False
-    calibration_level = 0
+    calibration_level = -1
     try:
         while not calibrated:
             # Wait for interrupt
@@ -311,7 +290,7 @@ def streamCalibration(vs_type):
 
             if calibration_level == 3:
                 calibrated = True
-                cled.blinkAll([(255,255,255), 50, 2])
+                cled.blinkAll((255,255,255), 50, 2)
                 print("Calibrated!")
 
         return True
@@ -338,6 +317,7 @@ def setRemappingMatrix():
     print(bhy.getRemappingMatrix(BHY.VS_TYPE_GYROSCOPE_UNCALIBRATED))
 
 def calibrationProccess():
+    bhy.calibrated = False
 
     print("##This procedure will follow you to calibrate the BHI160B sensors##")
     print("\nFirst we set the remapping Matrix for the MuHack Badge pcb...")
@@ -414,14 +394,57 @@ def calibrationProccess():
                                        })
 
     print("\n##Calibration completed!##\n")
+    bhy.calibrated = True
     cled.clear()
     cled.np.write()
+
+def compass():
+    # Activate orientation sensor
+    sensor = {"sensor_id": BHY.VS_TYPE_ORIENTATION,
+              "wakeup_status": False,
+              "sample_rate": 25,
+              "max_report_latency_ms": 0,
+              "flush_sensor": 0,
+              "change_sensitivity": 0,
+              "dynamic_range": 0
+             }
+    bhy.configVirtualSensorWithConfig(sensor)
+
+    startCLED()
+
+    try:
+        while True:
+            if (not button_B.value()):
+                break
+            gc.collect()
+
+            # Wait for interrupt
+            while not bhy.bhy_interrupt():
+                pass
+
+            buffer = bhy.readFIFO()
+
+            events = bhy.parse_fifo(buffer, False) # Dont pass the filters if we want to show everythings
+
+            for e in events: # Loop every events read
+                if e[0] == BHY.VS_TYPE_ORIENTATION or e[0] == (BHY.VS_TYPE_ORIENTATION + BHY.BHY_SID_WAKEUP_OFFSET):
+                    north = 360 - e[2]['x'] # Lock in place the rotation 
+                    cled.addAnimation("drawArrow", north)
+    except:
+        raise
+    finally:
+        stopCLED()
+        # Disable orientation sensor
+        sensor["sample_rate"] = 0
+        bhy.configVirtualSensorWithConfig(sensor)
 
 def streamFifo():
     showAll = input("Show all event? [False] ")
     raw = input("Show raw data? [False] ")
     if raw == 'y' or raw == 'Y':
         raw = True
+    else:
+        raw = False
 
     filter = []
     for s in sensor_config:
@@ -431,8 +454,7 @@ def streamFifo():
     # For good measure, flush old data
     bhy.flushFifo() # TODO: THIS DONT WORKS AS EXPECTED
 
-    print("Starting CLED system.. hold on")
-    cled_tread = _thread.start_new_thread(cled.run, ())
+    startCLED()
 
     try:
         while True:
@@ -464,24 +486,38 @@ def streamFifo():
                     cled.addAnimation("goesRound", [(0,255,0), 50])
                 elif e[0] == BHY.VS_TYPE_ORIENTATION or e[0] == (BHY.VS_TYPE_ORIENTATION + BHY.BHY_SID_WAKEUP_OFFSET):
                     north = 360 - e[2]['x']
-                    cled.addAnimation("drawArrow", [(0,0,255), north])
+                    cled.addAnimation("drawArrow", north)
                 elif e[0] == BHY.VS_TYPE_GEOMAGNETIC_FIELD or e[0] == (BHY.VS_TYPE_GEOMAGNETIC_FIELD + BHY.BHY_SID_WAKEUP_OFFSET):
                     print(e[2])
 
     except KeyboardInterrupt:
-        cled.addAnimation("exit", [])
         print("User Interrupt! Ending streaming!")
-        return
+    finally:
+        stopCLED()
 
 def startCLED():
     print("Starting CLED system.. hold on")
-    _thread.start_new_thread(cled.run, ())
+    if cled.is_running:
+        print("CLED systeam already running! Simply add animation with addAnimation function")
+    else:
+        _thread.start_new_thread(cled.run, ())
+        cled.is_running = True # TODO: Seems like the _thread.start_new_thread return None even if the thread had been started
+
+def stopCLED():
+    global CLED_THREAD
+    if CLED_THREAD:
+        cled.addAnimation("exit", [])
+        cled.is_running = False
+    else:
+        print("CLED system is not running!")
 
 def modeSelection(max_sel):
     sel = 0
     wheel = 0
     pressed = False
-    while not button_B.value():
+    while True:
+        if (not button_B.value()):
+            break
 
         if (not button_A.value()) and (not pressed):
             pressed = True
@@ -496,17 +532,26 @@ def modeSelection(max_sel):
         wheel += 1
         wheel = wheel % 255
 
-    return sel
+    print("Sel", sel)
+    print("Sel modulus", sel%max_sel)
+
+    return (sel % max_sel)
 
 def headlessMain():
     sleep_ms(500)
     state = 0
     fin = False
-    while not fin:
-        sel = modeSelection(7)
+    # First we try to configure the BHY
+    for i in range(3):
+        if not initBhy():
+            print("Retring...")
+        else:
+            break
 
-        cled.np[sel] = (255,255,255)
-        cled.np.write()
+    while not fin:
+        sel = modeSelection(len(applications)) # Let the user select the application with the LED circle
+        print("Starting application number", sel)
+        applications[sel]() # Actually call the function
 
 def print_menu():
     print("1. Configure i2c and upload RAM patch to BHY")
@@ -524,12 +569,15 @@ def from_stdin_to_uart(uart, a):
         uart.write(sys.stdin.read(1))
 
 def UARTPassThrough():
-    esp_uart = machine.UART(0, 115200, tx=Pin(ESP_TX_PIN), rx=Pin(ESP_RX_PIN))
+    try:
+        esp_uart = machine.UART(0, 115200, tx=Pin(ESP_TX_PIN), rx=Pin(ESP_RX_PIN))
 
-    sys_uart_thread = _thread.start_new_thread(from_stdin_to_uart, (esp_uart,1))
-    while True:
-        if esp_uart.any(): # ESP has data to send us
-            sys.stdout.write(esp_uart.read())
+        sys_uart_thread = _thread.start_new_thread(from_stdin_to_uart, (esp_uart,1))
+        while True:
+            if esp_uart.any(): # ESP has data to send us
+                sys.stdout.write(esp_uart.read())
+    except KeyboardInterrupt:
+        print("User Interrupt! Ending UART passthrough!")
 
 def main():
     printWelcome()
@@ -563,6 +611,17 @@ def main():
         else:
             ("Bad selection!\n")
 
+def startUpAnimation():
+    startup_chime = "6 C6 1 8;0 C5 1 43;1 F5 1 8;2 A5 1 8;3 C6 1 8;5 A5 1 8"
+    cled.fillFromBottom((0,255,0), 100)
+    mySong = music(startup_chime, pins=[Pin(BUZZER_PIN)], looping=False)
+    while mySong.tick():
+        sleep_ms(40)
+
+    sleep_ms(100)
+    cled.clear()
+    cled.np.write()
+
 def printWelcome():
   welcomes = [
       '''
@@ -577,7 +636,7 @@ def printWelcome():
     ▀█████████▄   ▄██████▄     ▄████████    ▄████████
       ███    ███ ███    ███   ███    ███   ███    ███
       ███    ███ ███    ███   ███    █▀    ███    █▀
-    ▄███▄▄▄██▀  ███    ███   ███          ███
+     ▄███▄▄▄██▀  ███    ███   ███          ███
     ▀▀███▀▀▀██▄  ███    ███ ▀███████████ ▀███████████
       ███    ██▄ ███    ███          ███          ███
       ███    ███ ███    ███    ▄█    ███    ▄█    ███
@@ -628,15 +687,19 @@ def printWelcome():
   print("Welcome to B.O.S.S. - Badge Operating Small System! Version: " + BOSS_Version + "\n")
 
 if __name__ == "__main__":
+    print("Starting...")
     SIE_STATUS=const(0x50110000+0x50)
     CONNECTED=const(1<<16)
     SUSPENDED=const(1<<4)
     try:
-        # We should implemente a star-up animation :D
+        gc.enable()
+        startUpAnimation()
         cled.clear()
         cled.np.write()
+        applications.append(calibrationProccess)
+        applications.append(compass)
         # Check if we have a serial connection active
-        if (machine.mem32[SIE_STATUS] & (CONNECTED | SUSPENDED))==CONNECTED:
+        if (machine.mem32[SIE_STATUS] & (CONNECTED | SUSPENDED))==CONNECTED and button_B.value():
             main()
         else: # If we dont, we start the headless mode
             headlessMain()

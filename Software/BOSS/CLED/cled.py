@@ -1,48 +1,33 @@
-'''
-MIT License
-
-Copyright (c) 2022 MrMoDDoM
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-'''
-
 import machine
 import neopixel
 import _thread
 from time import sleep_ms
 import gc
 
-
 class CLED:
 
     animation_list = []
+    animationLetter_list = []
 
-    def __init__(self, led_pin=22, led_len=23, debug = False):
+    def __init__(self, led_pin=22, led_len=23, letter_pin = 18, letter_len = 2, debug = False):
         self.len = led_len
+        self.lenLetter = letter_len
         self.np = neopixel.NeoPixel(machine.Pin(led_pin), led_len)
+        self.np_letter = neopixel.NeoPixel(machine.Pin(letter_pin), letter_len)
 
         self.lock = _thread.allocate_lock()
 
         self.debug = debug
         self.last_led = 0 
+        self.is_running = False
 
     def addAnimation(self, name, data):
+        while not self.lock.acquire(0):
+                    pass
+        self.animation_list.append([name, data])
+        self.lock.release()
+
+    def addAnimationLetter(self, name, data):
         while not self.lock.acquire(0):
                     pass
         self.animation_list.append([name, data])
@@ -57,22 +42,32 @@ class CLED:
                 self.lock.acquire()
 
                 nextAnimation = self.animation_list.pop()
-                
-                # Decide what function to call
-                if nextAnimation[0] == "blinkAll":
-                    self.blinkAll(nextAnimation[1])
-                elif nextAnimation[0] == "goesRound":
-                    self.goesRound(nextAnimation[1])
-                elif nextAnimation[0] == "drawArrow":
-                    self.drawArrow(nextAnimation[1])
-                elif nextAnimation[0] == "exit":
-                    print("Stopping CLED system")
+
+                # Check the stop condition
+                if nextAnimation[0] == "stopThread":
+                    self.is_running = False
                     _thread.exit()
 
+                # TODO: This is the rigth way, BUT IT IS TOO SLOW!
+                # Decide what function to call
+                # if nextAnimation[0] in dir(self):
+                #     animation = getattr(self, nextAnimation[0])
+                #     animation(nextAnimation[1])
+                
+                if nextAnimation[0] == "blinkAll":
+                    self.blinkAll(nextAnimation[1][0], nextAnimation[1][1], nextAnimation[1][2] )
+                elif nextAnimation[0] == "goesRound":
+                    self.goesRound(nextAnimation[1][0], nextAnimation[1][1])
+                elif nextAnimation[0] == "drawArrow":
+                    self.drawArrow(nextAnimation[1][0])
+                elif nextAnimation[0] == "drawLevel":
+                    self.drawLevel(nextAnimation[1][0], nextAnimation[1][1])
+                
                 self.lock.release()
                 gc.collect()
 
     def drawLevel(self, value, max):
+
         self.clear()
         top = (value*self.len)//max
         color = (255, 0, 0)
@@ -87,9 +82,7 @@ class CLED:
 
         self.np.write()
 
-    def goesRound(self, data):
-        color = data[0]
-        delay = data[1]
+    def goesRound(self, color, delay):
         for i in range(self.len):
             self.np[i] = color
             self.np.write()
@@ -97,12 +90,7 @@ class CLED:
 
         self.clear()
 
-
-    def blinkAll(self, data):
-        color = data[0]
-        delay = data[1]
-        blinks = data[2]
-
+    def blinkAll(self, color, delay, blinks):
         for b in range(blinks):
             for i in range(self.len):
                 self.np[i] = color
@@ -111,8 +99,7 @@ class CLED:
             sleep_ms(delay)
             self.clear()
 
-    def drawArrow(self, data):
-        grade = data[1]
+    def drawArrow(self, grade):
         half_number_leds=self.len//2
 
         index = int((grade/361) * self.len)
@@ -227,3 +214,14 @@ class CLED:
             return (0, 255 - pos * 3, pos * 3)
         pos -= 170
         return (pos * 3, 0, 255 - pos * 3)
+
+    def fillFromBottom(self, color, delay):
+        for i in range(6):
+            self.np[ (self.len // 2) + i] = color
+            self.np[ (self.len // 2) - i] = color
+            self.np.write()
+            sleep_ms(delay)
+
+        self.np[0] = color
+        self.np.write()
+        sleep_ms(delay)
