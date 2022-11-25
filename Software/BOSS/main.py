@@ -398,6 +398,34 @@ def calibrationProccess():
     cled.clear()
     cled.np.write()
 
+def idleAnimation():
+    # startCLED() # We dont need CLED on idle
+    j = 0
+    while True:
+        if (not button_A.value()):
+            break
+
+        for i in range(LED_STRIPE_LEN):
+            rc_index = (i * 256 // LED_STRIPE_LEN) + j
+            cled.np[i] = cled.wheel(rc_index & 255)
+
+        for i in range(LED_LETTER_LEN):
+            rc_index = (i * 256 // LED_LETTER_LEN) + j
+            cled.np_letter[i] = cled.wheel(rc_index & 255)
+
+        cled.np.write()
+        cled.np_letter.write()
+        sleep_ms(10)
+
+        j += 1
+        if j >= 255:
+            j = 0
+
+    cled.clear()
+    cled.clearLetter()
+    cled.np.write()
+    cled.np_letter.write()
+
 def compass():
     # Activate orientation sensor
     sensor = {"sensor_id": BHY.VS_TYPE_ORIENTATION,
@@ -430,8 +458,8 @@ def compass():
                 if e[0] == BHY.VS_TYPE_ORIENTATION or e[0] == (BHY.VS_TYPE_ORIENTATION + BHY.BHY_SID_WAKEUP_OFFSET):
                     north = 360 - e[2]['x'] # Lock in place the rotation 
                     cled.addAnimation("drawArrow", north)
-    except:
-        raise
+    except Exception as e:
+        raise e
     finally:
         stopCLED()
         # Disable orientation sensor
@@ -503,18 +531,22 @@ def startCLED():
         _thread.start_new_thread(cled.run, ())
         cled.is_running = True # TODO: Seems like the _thread.start_new_thread return None even if the thread had been started
 
+    sleep_ms(1000) # Give some time to CLED to start
+
 def stopCLED():
-    global CLED_THREAD
-    if CLED_THREAD:
+    if cled.is_running:
         cled.addAnimation("exit", [])
         cled.is_running = False
     else:
         print("CLED system is not running!")
 
+    sleep_ms(500) # Give some time to CLED to start
+
 def modeSelection(max_sel):
     sel = 0
     wheel = 0
     pressed = False
+    waited = 0
     while True:
         if (not button_B.value()):
             break
@@ -528,12 +560,13 @@ def modeSelection(max_sel):
         cled.np.fill((0,0,0))
         cled.np[sel % max_sel] = cled.wheel(wheel)
         cled.np.write()
-        sleep_ms(100)
+        sleep_ms(50)
         wheel += 1
         wheel = wheel % 255
-
-    print("Sel", sel)
-    print("Sel modulus", sel%max_sel)
+        waited += 1
+        if waited >= 200:
+            waited = 0
+            idleAnimation()
 
     return (sel % max_sel)
 
@@ -552,6 +585,7 @@ def headlessMain():
         sel = modeSelection(len(applications)) # Let the user select the application with the LED circle
         print("Starting application number", sel)
         applications[sel]() # Actually call the function
+        sleep_ms(1000)
 
 def print_menu():
     print("1. Configure i2c and upload RAM patch to BHY")
@@ -693,9 +727,14 @@ if __name__ == "__main__":
     SUSPENDED=const(1<<4)
     try:
         gc.enable()
-        startUpAnimation()
+        
         cled.clear()
         cled.np.write()
+        cled.clearLetter()
+        cled.np_letter.write()
+
+        startUpAnimation()
+
         applications.append(calibrationProccess)
         applications.append(compass)
         # Check if we have a serial connection active

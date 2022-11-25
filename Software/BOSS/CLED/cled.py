@@ -59,7 +59,7 @@ class CLED:
                 elif nextAnimation[0] == "goesRound":
                     self.goesRound(nextAnimation[1][0], nextAnimation[1][1])
                 elif nextAnimation[0] == "drawArrow":
-                    self.drawArrow(nextAnimation[1][0])
+                    self.drawArrow(nextAnimation[1])
                 elif nextAnimation[0] == "drawLevel":
                     self.drawLevel(nextAnimation[1][0], nextAnimation[1][1])
                 
@@ -188,6 +188,9 @@ class CLED:
     def clear(self):
         for i in range(self.len):
             self.np[i] = (0,0,0)
+    def clearLetter(self):
+        for i in range(self.lenLetter):
+            self.np_letter[i] = (0,0,0)
             
     def wheelRB(self, pos):
         #   Input a value 0 to 255 to get a color value.
