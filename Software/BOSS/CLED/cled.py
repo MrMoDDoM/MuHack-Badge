@@ -1,3 +1,4 @@
+import math
 import machine
 import neopixel
 import _thread
@@ -6,11 +7,18 @@ import gc
 
 class CLED:
 
+    ANIM_STOP_THREAD = "stopcled.ANIM_BLINK_ALLThread"
+    ANIM_BLINK_ALL = "blinkAll"
+    ANIM_GOES_ROUND = "goesRound"
+    ANIM_DRAW_LEVEL = "drawLevel"
+    ANIM_DRAW_ARROW = "drawArrow"
+    ANIM_DRAW_VECTOR = "drawVector"
+
     animation_list = []
     animationLetter_list = []
 
     def __init__(self, led_pin=22, led_len=23, letter_pin = 18, letter_len = 2, debug = False):
-        self.len = led_len
+        self.lenLed = led_len
         self.lenLetter = letter_len
         self.np = neopixel.NeoPixel(machine.Pin(led_pin), led_len)
         self.np_letter = neopixel.NeoPixel(machine.Pin(letter_pin), letter_len)
@@ -22,14 +30,14 @@ class CLED:
         self.is_running = False
 
     def addAnimation(self, name, data):
-        while not self.lock.acquire(0):
-                    pass
+        # while not self.lock.acquire(10):
+        #     pass
         self.animation_list.append([name, data])
-        self.lock.release()
+        # self.lock.release()
 
     def addAnimationLetter(self, name, data):
         while not self.lock.acquire(0):
-                    pass
+            pass
         self.animation_list.append([name, data])
         self.lock.release()
 
@@ -44,8 +52,13 @@ class CLED:
                 nextAnimation = self.animation_list.pop()
 
                 # Check the stop condition
-                if nextAnimation[0] == "stopThread":
+                if nextAnimation[0] == self.ANIM_STOP_THREAD:
                     self.is_running = False
+                    self.np.fill((0,0,0))
+                    self.np.write()
+                    self.np_letter.fill((0,0,0))
+                    self.np_letter.write()
+                    self.lock.release()
                     _thread.exit()
 
                 # TODO: This is the rigth way, BUT IT IS TOO SLOW!
@@ -54,14 +67,16 @@ class CLED:
                 #     animation = getattr(self, nextAnimation[0])
                 #     animation(nextAnimation[1])
                 
-                if nextAnimation[0] == "blinkAll":
+                if nextAnimation[0] == self.ANIM_BLINK_ALL:
                     self.blinkAll(nextAnimation[1][0], nextAnimation[1][1], nextAnimation[1][2] )
-                elif nextAnimation[0] == "goesRound":
+                elif nextAnimation[0] == self.ANIM_GOES_ROUND:
                     self.goesRound(nextAnimation[1][0], nextAnimation[1][1])
-                elif nextAnimation[0] == "drawArrow":
+                elif nextAnimation[0] == self.ANIM_DRAW_ARROW:
                     self.drawArrow(nextAnimation[1])
-                elif nextAnimation[0] == "drawLevel":
+                elif nextAnimation[0] == self.ANIM_DRAW_LEVEL:
                     self.drawLevel(nextAnimation[1][0], nextAnimation[1][1])
+                elif nextAnimation[0] == self.ANIM_DRAW_VECTOR:
+                    self.drawVector(nextAnimation[1][0], nextAnimation[1][1], nextAnimation[1][2], nextAnimation[1][3])
                 
                 self.lock.release()
                 gc.collect()
@@ -69,7 +84,7 @@ class CLED:
     def drawLevel(self, value, max):
 
         self.clear()
-        top = (value*self.len)//max
+        top = (value*self.lenLed)//max
         color = (255, 0, 0)
 
         if (value > max//3):
@@ -83,7 +98,7 @@ class CLED:
         self.np.write()
 
     def goesRound(self, color, delay):
-        for i in range(self.len):
+        for i in range(self.lenLed):
             self.np[i] = color
             self.np.write()
             sleep_ms(delay)
@@ -92,7 +107,7 @@ class CLED:
 
     def blinkAll(self, color, delay, blinks):
         for b in range(blinks):
-            for i in range(self.len):
+            for i in range(self.lenLed):
                 self.np[i] = color
             
             self.np.write()
@@ -100,35 +115,35 @@ class CLED:
             self.clear()
 
     def drawArrow(self, grade):
-        half_number_leds=self.len//2
+        half_number_leds=self.lenLed//2
 
-        index = int((grade/361) * self.len)
-        resto = grade - (360/self.len) * index
-        delta_rgb = (255 * 2) / self.len
-        fix = (resto * self.len * delta_rgb)/360
+        index = int((grade/361) * self.lenLed)
+        resto = grade - (360/self.lenLed) * index
+        delta_rgb = (255 * 2) / self.lenLed
+        fix = (resto * self.lenLed * delta_rgb)/360
 
         # initialize array
         led_color=[]
-        for i in range(self.len):
+        for i in range(self.lenLed):
             led_color.append((0,0,0))
 
         led_color[index]= (255-fix,0,fix)
 
-        if(self.len%2==0):
-            led_color[(index+half_number_leds) % self.len]= (fix,0,255-fix)
+        if(self.lenLed%2==0):
+            led_color[(index+half_number_leds) % self.lenLed]= (fix,0,255-fix)
 
         for i in range(half_number_leds-1):
             if i==0:
-                (r,g,b)= led_color[(index+i)%self.len]
-                led_color[(index+(i+1))%self.len] = (r-delta_rgb+2*fix,g,b+delta_rgb-2*fix)
+                (r,g,b)= led_color[(index+i)%self.lenLed]
+                led_color[(index+(i+1))%self.lenLed] = (r-delta_rgb+2*fix,g,b+delta_rgb-2*fix)
             else:
-                (r,g,b)= led_color[(index+i)%self.len]
-                led_color[(index+(i+1))%self.len] = (r-delta_rgb,g,b+delta_rgb)
+                (r,g,b)= led_color[(index+i)%self.lenLed]
+                led_color[(index+(i+1))%self.lenLed] = (r-delta_rgb,g,b+delta_rgb)
 
-            (r1,g1,b1)= led_color[(index-i)%self.len]
-            led_color[(index-(i+1))%self.len] = (r1-delta_rgb,g1,b1+delta_rgb)
+            (r1,g1,b1)= led_color[(index-i)%self.lenLed]
+            led_color[(index-(i+1))%self.lenLed] = (r1-delta_rgb,g1,b1+delta_rgb)
 
-        for i in range(self.len):
+        for i in range(self.lenLed):
             (r,g,b)= led_color[i]
             self.np[i]= (int(r),int(g),int(b))
 
@@ -160,33 +175,61 @@ class CLED:
     #     self.np.write()
         # return led_color
     
-    # def drawArrow(self, data):
-    #     color = 255
-    #     #led = int((data[1]*12)//361) # Remap 360 on the 12 led - 361 to avoid off by one on led
-    #     #led = 11 - led # The poin must 
-    #     # if led != self.last_led:
-    #     #     print(led)
-    #     #     self.last_led = led
-        
-    #     for i in range(self.len):
-    #         angle = (i+1) * 30
-    #         delta = abs(data[1] - angle)
-    #         if delta > 180:
-    #             delta = -delta % 180
-    #         color = (delta * 255) // 90
-    #         if color > 255:
-    #             color = 255
-            
-    #         self.np[i] = (int(color),0,0) #self.wheelRB(int(color))
+    def drawVector(self, x, y, z, max_value):
+        color = 255
 
-    #     self.np.write()
-    #     # for i in range(self.len / 2):
-    #     #     self.np[ (led + i) % self.len ] = (0,0,color)
-    #     #     self.np[ (led - i) % self.len ] = (0,0,color)
-    #     #     color = color - 21 # 255//6
+        # Calculate the vector on 2 axis
+        vector = int(math.sqrt(x*x + y*y ))
+        z = int(z)
+
+        if vector == 0 and z == 0:
+            self.np.fill((0,0,0))
+            self.np.write()
+            self.np_letter.fill((0,0,0))
+            self.np_letter.write()
+            return
+
+        # Scale the color to the max value for z axis
+        if z > 0:
+            color = int((z*255)//max_value)
+            self.np_letter[0] = (0,0,0)
+            self.np_letter[1] = (color,0,0)
+        else:
+            color = int((z*-255)//max_value)
+            self.np_letter[0] = (color,0,0)
+            self.np_letter[1] = (0,0,0)
+
+        self.np_letter.write()
+        
+        # Get the angle
+        angle = int(math.atan2(y, x) * 180 // math.pi)
+        if angle < 0:
+            angle = 360 + angle
+        
+        #print("Angle: " + str(angle) + " - Vector: " + str(vector) + " - Vector Z: " + str(z)+ '\r', end='')
+
+        vector_color = (vector * 255) // max_value
+
+        for i in range(self.lenLed):
+            step_angle = i * 30
+            delta = abs(angle - step_angle)
+            if delta > 180:
+                delta = -delta % 180
+
+            color = (delta * vector_color) // 90
+            color = vector_color - color
+            if color < 10:
+                color = 0
+
+            if color > 255:
+                color = 255
+            
+            self.np[i] = (int(color),0,0) #self.wheelRB(int(color))
+
+        self.np.write()
 
     def clear(self):
-        for i in range(self.len):
+        for i in range(self.lenLed):
             self.np[i] = (0,0,0)
     def clearLetter(self):
         for i in range(self.lenLetter):
@@ -220,8 +263,8 @@ class CLED:
 
     def fillFromBottom(self, color, delay):
         for i in range(6):
-            self.np[ (self.len // 2) + i] = color
-            self.np[ (self.len // 2) - i] = color
+            self.np[ (self.lenLed // 2) + i] = color
+            self.np[ (self.lenLed // 2) - i] = color
             self.np.write()
             sleep_ms(delay)
 

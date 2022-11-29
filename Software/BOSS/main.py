@@ -57,8 +57,9 @@ one_shot_re_enable = [BHY.VS_TYPE_WAKEUP,
 # Ys| 0 | -1| 0 |
 # Zs| 0 | 0 | -1|
 
-remapping_matrix = [0,1,0,1,0,0,0,0,-1] # P5 ?
+#remapping_matrix = [0,1,0,1,0,0,0,0,-1] # P5 ?
 #remapping_matrix = [1,0,0,0,-1,0,0,0,-1] # P7 ?
+remapping_matrix = [1,0,0,0,1,0,0,0,-1] # P? ? - obtained from experimenting with the accelerometer
 
 def testHardware():
     led_stripe = neopixel.NeoPixel(machine.Pin(LED_STRIPE_PIN), LED_STRIPE_LEN)
@@ -400,31 +401,121 @@ def calibrationProccess():
 
 def idleAnimation():
     # startCLED() # We dont need CLED on idle
+        # Activate orientation sensor
+    sensor = {"sensor_id": BHY.VS_TYPE_PICKUP,
+              "wakeup_status": True,
+              "sample_rate": 200,
+              "max_report_latency_ms": 0,
+              "flush_sensor": 0,
+              "change_sensitivity": 0,
+              "dynamic_range": 0
+             }
+    bhy.configVirtualSensorWithConfig(sensor)
+
+    sensor = {"sensor_id": BHY.VS_TYPE_WAKEUP,
+              "wakeup_status": True,
+              "sample_rate": 200,
+              "max_report_latency_ms": 0,
+              "flush_sensor": 0,
+              "change_sensitivity": 0,
+              "dynamic_range": 0
+             }
+    bhy.configVirtualSensorWithConfig(sensor)
+
+    startCLED()
+
     j = 0
-    while True:
-        if (not button_A.value()):
-            break
 
-        for i in range(LED_STRIPE_LEN):
-            rc_index = (i * 256 // LED_STRIPE_LEN) + j
-            cled.np[i] = cled.wheel(rc_index & 255)
+    fin = False
 
-        for i in range(LED_LETTER_LEN):
-            rc_index = (i * 256 // LED_LETTER_LEN) + j
-            cled.np_letter[i] = cled.wheel(rc_index & 255)
+    try:
+        while not fin:
+            gc.collect()
 
+            if (not button_A.value()):
+                break
+
+            # Wait for interrupt and progress the animation
+            while not bhy.bhy_interrupt():
+                for i in range(LED_STRIPE_LEN):
+                    rc_index = (i * 256 // LED_STRIPE_LEN) + j
+                    cled.np[i] = cled.wheel(rc_index & 255)
+
+                for i in range(LED_LETTER_LEN):
+                    rc_index = (i * 256 // LED_LETTER_LEN) + j
+                    cled.np_letter[i] = cled.wheel(rc_index & 255)
+
+                cled.np.write()
+                cled.np_letter.write()
+                sleep_ms(10)
+
+                j += 1
+                if j >= 255:
+                    j = 0
+
+            buffer = bhy.readFIFO()
+
+            events = bhy.parse_fifo(buffer, False) # Dont pass the filters if we want to show everythings
+
+            for e in events: # Loop every events read
+                if (e[0] == BHY.VS_TYPE_PICKUP 
+                    or e[0] == (BHY.VS_TYPE_PICKUP + BHY.BHY_SID_WAKEUP_OFFSET)
+                    or e[0] == BHY.VS_TYPE_WAKEUP 
+                    or e[0] == (BHY.VS_TYPE_WAKEUP + BHY.BHY_SID_WAKEUP_OFFSET)):
+                    fin = True # We have been picked up!
+
+    except Exception as e:
+        raise e
+    finally:
+        stopCLED()
+        # Disable orientation sensor
+        sensor["sample_rate"] = 0
+        bhy.configVirtualSensorWithConfig(sensor)
+        cled.clear()
+        cled.clearLetter()
         cled.np.write()
         cled.np_letter.write()
-        sleep_ms(10)
 
-        j += 1
-        if j >= 255:
-            j = 0
+def accelerometer():
+    # Activate orientation sensor
+    sensor = {"sensor_id": BHY.VS_TYPE_LINEAR_ACCELERATION,
+              "wakeup_status": False,
+              "sample_rate": 25,
+              "max_report_latency_ms": 0,
+              "flush_sensor": 0,
+              "change_sensitivity": 0,
+              "dynamic_range": 0
+             }
+    bhy.configVirtualSensorWithConfig(sensor)
 
-    cled.clear()
-    cled.clearLetter()
-    cled.np.write()
-    cled.np_letter.write()
+    startCLED()
+
+    try:
+        while True:
+            if (not button_B.value()):
+                break
+            gc.collect()
+
+            # Wait for interrupt
+            while not bhy.bhy_interrupt():
+                pass
+
+            buffer = bhy.readFIFO()
+
+            events = bhy.parse_fifo(buffer, False) # Dont pass the filters if we want to show everythings
+
+            for e in events: # Loop every events read
+                if e[0] == BHY.VS_TYPE_LINEAR_ACCELERATION or e[0] == (BHY.VS_TYPE_LINEAR_ACCELERATION + BHY.BHY_SID_WAKEUP_OFFSET):
+                    cled.addAnimation(cled.ANIM_DRAW_VECTOR, [(e[2]['x'] * 4 ) / 32768, (e[2]['y'] * 4) / 32768, (e[2]['z'] * 4) / 32768, 10])
+                    
+    except Exception as e:
+        raise e
+    finally:
+        stopCLED()
+        # Disable orientation sensor
+        sensor["sample_rate"] = 0
+        bhy.configVirtualSensorWithConfig(sensor)
+        
 
 def compass():
     # Activate orientation sensor
@@ -457,7 +548,8 @@ def compass():
             for e in events: # Loop every events read
                 if e[0] == BHY.VS_TYPE_ORIENTATION or e[0] == (BHY.VS_TYPE_ORIENTATION + BHY.BHY_SID_WAKEUP_OFFSET):
                     north = 360 - e[2]['x'] # Lock in place the rotation 
-                    cled.addAnimation("drawArrow", north)
+                    cled.addAnimation(cled.ANIM_DRAW_ARROW, north)
+                    
     except Exception as e:
         raise e
     finally:
@@ -509,12 +601,12 @@ def streamFifo():
 
                 if e[0] == BHY.VS_TYPE_WAKEUP or e[0] == (BHY.VS_TYPE_WAKEUP + BHY.BHY_SID_WAKEUP_OFFSET):
                     #_thread.start_new_thread(cled.run, ("goesRound", [(0,255,0), 10]))
-                    cled.addAnimation("blinkAll", [(255,255,0), 50, 2])
+                    cled.addAnimation(cled.ANIM_BLINK_ALL, [(255,255,0), 50, 2])
                 elif e[0] == BHY.VS_TYPE_PICKUP or e[0] == (BHY.VS_TYPE_PICKUP + BHY.BHY_SID_WAKEUP_OFFSET):
-                    cled.addAnimation("goesRound", [(0,255,0), 50])
+                    cled.addAnimation(cled.ANIM_GOES_ROUND, [(0,255,0), 50])
                 elif e[0] == BHY.VS_TYPE_ORIENTATION or e[0] == (BHY.VS_TYPE_ORIENTATION + BHY.BHY_SID_WAKEUP_OFFSET):
                     north = 360 - e[2]['x']
-                    cled.addAnimation("drawArrow", north)
+                    cled.addAnimation(cled.ANIM_DRAW_ARROW, north)
                 elif e[0] == BHY.VS_TYPE_GEOMAGNETIC_FIELD or e[0] == (BHY.VS_TYPE_GEOMAGNETIC_FIELD + BHY.BHY_SID_WAKEUP_OFFSET):
                     print(e[2])
 
@@ -531,11 +623,12 @@ def startCLED():
         _thread.start_new_thread(cled.run, ())
         cled.is_running = True # TODO: Seems like the _thread.start_new_thread return None even if the thread had been started
 
-    sleep_ms(1000) # Give some time to CLED to start
+    sleep_ms(500) # Give some time to CLED to start
 
 def stopCLED():
+    print("Stopping CLED system.. hold on")
     if cled.is_running:
-        cled.addAnimation("exit", [])
+        cled.addAnimation(cled.ANIM_STOP_THREAD, [])
         cled.is_running = False
     else:
         print("CLED system is not running!")
@@ -566,6 +659,7 @@ def modeSelection(max_sel):
         waited += 1
         if waited >= 200:
             waited = 0
+            print("Starting idle Animation")
             idleAnimation()
 
     return (sel % max_sel)
@@ -580,6 +674,9 @@ def headlessMain():
             print("Retring...")
         else:
             break
+
+    # And then we set the remapping matrix
+    setRemappingMatrix()
 
     while not fin:
         sel = modeSelection(len(applications)) # Let the user select the application with the LED circle
@@ -648,9 +745,9 @@ def main():
 def startUpAnimation():
     startup_chime = "6 C6 1 8;0 C5 1 43;1 F5 1 8;2 A5 1 8;3 C6 1 8;5 A5 1 8"
     cled.fillFromBottom((0,255,0), 100)
-    mySong = music(startup_chime, pins=[Pin(BUZZER_PIN)], looping=False)
-    while mySong.tick():
-        sleep_ms(40)
+    # mySong = music(startup_chime, pins=[Pin(BUZZER_PIN)], looping=False)
+    # while mySong.tick():
+    #     sleep_ms(40)
 
     sleep_ms(100)
     cled.clear()
@@ -731,12 +828,14 @@ if __name__ == "__main__":
         cled.clear()
         cled.np.write()
         cled.clearLetter()
+        
         cled.np_letter.write()
 
         startUpAnimation()
 
         applications.append(calibrationProccess)
         applications.append(compass)
+        applications.append(accelerometer)
         # Check if we have a serial connection active
         if (machine.mem32[SIE_STATUS] & (CONNECTED | SUSPENDED))==CONNECTED and button_B.value():
             main()
