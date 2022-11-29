@@ -22,6 +22,7 @@ TODOs:
  - [ ] Remove power inductor (or change to an available one)
  - [ ] Maybe add a way to switch LEDs data line to the ESP32 instead of the RP2040
  - [ ] Docs and code comments
+ - [ ] Remove the D16 Schottky Diode from the battery line
  
  Special Thanks to:
  @gcammisa and Paolino

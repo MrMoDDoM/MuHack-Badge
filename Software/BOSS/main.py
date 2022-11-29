@@ -745,9 +745,9 @@ def main():
 def startUpAnimation():
     startup_chime = "6 C6 1 8;0 C5 1 43;1 F5 1 8;2 A5 1 8;3 C6 1 8;5 A5 1 8"
     cled.fillFromBottom((0,255,0), 100)
-    # mySong = music(startup_chime, pins=[Pin(BUZZER_PIN)], looping=False)
-    # while mySong.tick():
-    #     sleep_ms(40)
+    mySong = music(startup_chime, pins=[Pin(BUZZER_PIN)], looping=False)
+    while mySong.tick():
+        sleep_ms(40)
 
     sleep_ms(100)
     cled.clear()
